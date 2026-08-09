@@ -28,7 +28,7 @@ chapter: false
 &emsp; **Internship Duration:** From 08/06/2026 to 04/08/2026
 
 <div style="text-align: center; margin: 20px 0;">
-    <img src="/images/avatar.jpg" onerror="this.onerror=null; this.src='/images/avatar.png';" alt="Profile Picture" style="width: 160px; height: 160px; object-fit: cover; border-radius: 12px; border: 2px solid #38bdf8; display: inline-block;">
+    <img src="/images/avt.jpg" onerror="this.onerror=null; this.src='/images/avatar.jpg';" alt="Profile Picture" style="width: 160px; height: 160px; object-fit: cover; border-radius: 12px; border: 2px solid #38bdf8; display: inline-block;">
 </div>
 
 ### Report Content
