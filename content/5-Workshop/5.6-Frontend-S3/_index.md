@@ -868,7 +868,7 @@ Create `index.html` locally and paste the code below (replace `<YOUR-API-ID>` wi
         };
 
         let socket;
-        const myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
+        let myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
         const activeUsersMap = new Map();
         let selectedImageDataUrl = null;
         let currentRoomId = 'general';
