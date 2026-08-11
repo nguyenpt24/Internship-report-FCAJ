@@ -908,6 +908,17 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
             return `${r}_${u}_${t}_${txt}`;
         }
 
+        function isMsgFromMe(msgObj) {
+            if (!msgObj) return false;
+            const currentUserName = document.getElementById('usernameInput').value;
+            const cleanCurrent = cleanUsername(currentUserName);
+            const cleanSender = cleanUsername(msgObj.username);
+            if (cleanCurrent && cleanSender) {
+                return cleanCurrent === cleanSender;
+            }
+            return msgObj.clientId === myClientId;
+        }
+
         // Fallback Local Storage Registry for Demo/Testing Mode
         let registeredCognitoUsers = new Map([
             ["alex.dev@fcj-workshop.aws", {
@@ -1235,6 +1246,13 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
         function handleLogout() {
             if (confirm("Bạn có chắc chắn muốn Đăng xuất khỏi phòng chat?")) {
                 cognitoUserSession = null;
+                myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
+                renderedMsgKeys.clear();
+                oldestLoadedTimestamp = null;
+                isLoadingMoreHistory = false;
+                hasMoreHistory = true;
+                const msgBox = document.getElementById('messages');
+                if (msgBox) msgBox.innerHTML = '';
                 if (socket) socket.close();
                 document.getElementById('authScreen').classList.remove('hidden');
                 switchAuthTab('signin');
@@ -1270,8 +1288,7 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
                     };
                 }
 
-                const isMe = (msgObj.clientId === myClientId) || 
-                             (msgObj.username === document.getElementById('usernameInput').value.trim());
+                const isMe = isMsgFromMe(msgObj);
 
                 if (msgObj.clientId && msgObj.username) {
                     trackActiveUser(msgObj.clientId, msgObj.username);
@@ -1316,8 +1333,7 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
                                 const k = getMsgKey(item);
                                 if (k) renderedMsgKeys.add(k);
 
-                                const isHistoryMe = (item.clientId === myClientId) || 
-                                                    (cleanUsername(item.username) === cleanUsername(document.getElementById('usernameInput').value));
+                                const isHistoryMe = isMsgFromMe(item);
                                 const wrapper = createMessageElement(item, isHistoryMe);
                                 fragment.appendChild(wrapper);
                             });
@@ -1355,8 +1371,7 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
                         if (historyArray.length > 0) {
                             oldestLoadedTimestamp = historyArray[0].timestamp;
                             historyArray.forEach(item => {
-                                const isHistoryMe = (item.clientId === myClientId) || 
-                                                    (item.username === document.getElementById('usernameInput').value.trim());
+                                const isHistoryMe = isMsgFromMe(item);
                                 appendMessage(item, isHistoryMe);
                             });
 
