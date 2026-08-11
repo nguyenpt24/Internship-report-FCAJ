@@ -25,7 +25,7 @@ Kiểm thử tính năng gửi/nhận tin nhắn thời gian thực giữa 2 tab
 ---
 
 #### 2. Kịch bản dọn dẹp tài nguyên (Cleanup Scripts)
-Để tránh phát sinh chi phí ngoài ý muốn sau khi kết thúc bài workshop, chạy các lệnh AWS CLI sau trên Terminal để xóa tài nguyên:
+Để tránh phát sinh chi phí ngoài ý muốn sau khi kết thúc bài workshop, chạy các lệnh AWS CLI sau trên Terminal để xóa toàn bộ tài nguyên đã khởi tạo:
 
 ```bash
 # 1. Xóa đường dẫn WebSocket API Gateway
@@ -36,13 +36,24 @@ aws lambda delete-function --function-name onConnect
 aws lambda delete-function --function-name onDisconnect
 aws lambda delete-function --function-name sendMessage
 
-# 3. Xóa bảng Amazon DynamoDB
+# 3. Xóa các bảng Amazon DynamoDB (Bảng Connections & Bảng Lịch sử Chat)
 aws dynamodb delete-table --table-name WebSocketConnections
+aws dynamodb delete-table --table-name ChatMessages
 
-# 4. Xóa S3 Bucket Frontend
+# 4. Xóa Amazon Cognito User Pool
+aws cognito-idp delete-user-pool --user-pool-id <YOUR-USER-POOL-ID>
+
+# 5. Xóa Cảnh báo Amazon CloudWatch Alarm
+aws cloudwatch delete-alarms --alarm-names ChatAppHighTrafficAlarm
+
+# 6. Xóa Amazon CloudFront Distribution
+aws cloudfront disable-distribution --id <YOUR-DISTRIBUTION-ID>
+aws cloudfront delete-distribution --id <YOUR-DISTRIBUTION-ID> --if-match <ETAG>
+
+# 7. Xóa S3 Bucket Frontend
 aws s3 rb s3://my-serverless-chat-frontend-2026 --force
 
-# 5. Gỡ bỏ các Policy và xóa IAM Role ChatAppLambdaRole
+# 8. Gỡ bỏ các Policy và xóa IAM Role ChatAppLambdaRole
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess

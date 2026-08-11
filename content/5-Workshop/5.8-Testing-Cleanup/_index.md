@@ -36,13 +36,24 @@ aws lambda delete-function --function-name onConnect
 aws lambda delete-function --function-name onDisconnect
 aws lambda delete-function --function-name sendMessage
 
-# 3. Delete Amazon DynamoDB table
+# 3. Delete Amazon DynamoDB tables (Connections & Chat History tables)
 aws dynamodb delete-table --table-name WebSocketConnections
+aws dynamodb delete-table --table-name ChatMessages
 
-# 4. Force delete S3 Frontend Bucket
+# 4. Delete Amazon Cognito User Pool
+aws cognito-idp delete-user-pool --user-pool-id <YOUR-USER-POOL-ID>
+
+# 5. Delete Amazon CloudWatch Alarm
+aws cloudwatch delete-alarms --alarm-names ChatAppHighTrafficAlarm
+
+# 6. Delete Amazon CloudFront Distribution
+aws cloudfront disable-distribution --id <YOUR-DISTRIBUTION-ID>
+aws cloudfront delete-distribution --id <YOUR-DISTRIBUTION-ID> --if-match <ETAG>
+
+# 7. Force delete S3 Frontend Bucket
 aws s3 rb s3://my-serverless-chat-frontend-2026 --force
 
-# 5. Detach Policies and Delete IAM Role ChatAppLambdaRole
+# 8. Detach Policies and Delete IAM Role ChatAppLambdaRole
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
 aws iam detach-role-policy --role-name ChatAppLambdaRole --policy-arn arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
