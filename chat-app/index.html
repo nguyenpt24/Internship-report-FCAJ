@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Serverless Real-Time Chat App (Test Mode)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b0f19;
+            color: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .chat-card {
+            width: 100%;
+            max-width: 650px;
+            background: #161e2e;
+            border: 1px solid #2d3748;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 620px;
+        }
+        .chat-header {
+            background: #1e293b;
+            padding: 18px 24px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-title { display: flex; align-items: center; gap: 12px; }
+        .aws-logo {
+            width: 36px; height: 36px; background: #ff9900; color: #000;
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 16px;
+        }
+        .chat-title h2 { font-size: 18px; font-weight: 700; color: #f8fafc; }
+        .chat-title p { font-size: 12px; color: #94a3b8; }
+        .status-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            background: #064e3b; color: #34d399; border: 1px solid #059669;
+        }
+        .status-badge.mock { background: #1e3a8a; color: #60a5fa; border-color: #2563eb; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+        .status-badge.mock .status-dot { background: #60a5fa; }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #0f172a;
+        }
+        .msg-item { display: flex; flex-direction: column; max-width: 75%; }
+        .msg-item.sent { align-self: flex-end; align-items: flex-end; }
+        .msg-item.received { align-self: flex-start; align-items: flex-start; }
+        
+        .msg-sender { font-size: 11px; color: #64748b; margin-bottom: 3px; font-weight: 600; }
+        .msg-bubble {
+            padding: 10px 16px; border-radius: 14px; font-size: 14px; line-height: 1.5;
+            word-break: break-word;
+        }
+        .msg-item.sent .msg-bubble { background: #2563eb; color: #ffffff; border-bottom-right-radius: 2px; }
+        .msg-item.received .msg-bubble { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-bottom-left-radius: 2px; }
+        .msg-time { font-size: 10px; color: #64748b; margin-top: 4px; }
+        
+        .chat-footer {
+            padding: 16px 20px;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 12px;
+        }
+        .chat-input {
+            flex: 1; background: #0f172a; border: 1px solid #334155; color: #f8fafc;
+            padding: 12px 16px; border-radius: 10px; font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .chat-input:focus { border-color: #3b82f6; }
+        .send-btn {
+            background: #2563eb; color: #ffffff; border: none; padding: 0 24px;
+            border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .send-btn:hover { background: #1d4ed8; }
+        
+        .test-banner {
+            background: #1e1b4b; color: #a5b4fc; text-align: center; padding: 8px 12px;
+            font-size: 12px; border-bottom: 1px solid #312e81; display: flex;
+            align-items: center; justify-content: center; gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-card">
+        <div class="test-banner">
+            ⚡ <strong>Chế độ Test Local (Mock API)</strong>: Mở file này trên 2 tab trình duyệt khác nhau để test truyền nhận tin nhắn Real-Time ngay lập tức mà không cần AWS!
+        </div>
+
+        <div class="chat-header">
+            <div class="chat-title">
+                <div class="aws-logo">AWS</div>
+                <div>
+                    <h2>Serverless Real-Time Chat</h2>
+                    <p id="userLabel">User: Anonymous</p>
+                </div>
+            </div>
+            <div class="status-badge mock" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">Mock Channel Active</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="messageList">
+            <div class="msg-item received">
+                <span class="msg-sender">System Bot</span>
+                <div class="msg-bubble">Chào mừng bạn! Hệ thống đã sẵn sàng. Hãy mở một tab trình duyệt khác với file này để thử nghiệm nhắn tin Real-Time!</div>
+                <span class="msg-time">Vừa xong</span>
+            </div>
+        </div>
+
+        <div class="chat-footer">
+            <input type="text" class="chat-input" id="messageInput" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+        // Đường dẫn AWS WSS (Để trống nếu muốn chạy Test Mock Local)
+        const AWS_WSS_URL = ""; 
+
+        // Đặt tên ngẫu nhiên cho User ở mỗi Tab
+        const userId = "User_" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById("userLabel").innerText = "Bạn là: " + userId;
+
+        // Cấu hình BroadcastChannel để kết nối giữa các Tab trình duyệt
+        const channel = new BroadcastChannel("aws_serverless_chat");
+
+        // Nhận tin nhắn từ tab khác trong chế độ Mock
+        channel.onmessage = (event) => {
+            const data = event.data;
+            if (data.sender !== userId) {
+                appendMessage(data.sender, data.message, "received");
+            }
+        };
+
+        // Hàm gửi tin nhắn
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Hiển thị tin nhắn của chính mình
+            appendMessage("Bạn (" + userId + ")", text, "sent");
+
+            // Phát tin nhắn sang các tab khác
+            channel.postMessage({
+                sender: userId,
+                message: text,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            input.value = "";
+        }
+
+        // Hàm hiển thị tin nhắn vào danh sách
+        function appendMessage(sender, message, type) {
+            const list = document.getElementById("messageList");
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const msgItem = document.createElement("div");
+            msgItem.className = `msg-item ${type}`;
+            msgItem.innerHTML = `
+                <span class="msg-sender">${sender}</span>
+                <div class="msg-bubble">${escapeHtml(message)}</div>
+                <span class="msg-time">${timeStr}</span>
+            `;
+            
+            list.appendChild(msgItem);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
