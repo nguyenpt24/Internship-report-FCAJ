@@ -126,6 +126,8 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   ScanCommand,
+  PutCommand,
+  QueryCommand,
   DeleteCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const {
@@ -139,50 +141,112 @@ const docClient = DynamoDBDocumentClient.from(dbClient);
 exports.handler = async (event) => {
   const domainName = event.requestContext.domainName;
   const stage = event.requestContext.stage;
+  const connectionId = event.requestContext.connectionId;
   const endpoint = `https://${domainName}/${stage}`;
   const apiGateway = new ApiGatewayManagementApiClient({ endpoint: endpoint });
 
-  let postData;
+  let rawData;
+  let payloadObj;
   try {
-    const body =
-      typeof event.body === "string" ? JSON.parse(event.body) : event.body;
-    postData = body.data;
+    const body = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+    rawData = body.data;
+    payloadObj = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
   } catch (e) {
-    return { statusCode: 400, body: "Invalid payload format." };
+    payloadObj = { type: "chat", text: String(rawData || ""), roomId: "general" };
   }
 
-  const connections = await docClient.send(
-    new ScanCommand({ TableName: "WebSocketConnections" }),
-  );
+  const roomId = payloadObj.roomId || "general";
 
-  const sendMessages = connections.Items.map(async ({ connectionId }) => {
+  // 1. Xử lý yêu cầu Lấy Lịch Sử Tin Nhắn (Get History)
+  if (payloadObj.type === "gethistory") {
     try {
+      const historyResult = await docClient.send(
+        new QueryCommand({
+          TableName: "ChatMessages",
+          KeyConditionExpression: "roomId = :r",
+          ExpressionAttributeValues: { ":r": roomId },
+          ScanIndexForward: true, // Sắp xếp theo thứ tự thời gian
+          Limit: 50
+        })
+      );
+
       await apiGateway.send(
         new PostToConnectionCommand({
           ConnectionId: connectionId,
           Data: Buffer.from(
             JSON.stringify({
-              message: postData,
-              sender: event.requestContext.connectionId,
-            }),
-          ),
-        }),
+              message: JSON.stringify({
+                type: "history",
+                roomId: roomId,
+                history: historyResult.Items || []
+              })
+            })
+          )
+        })
+      );
+      return { statusCode: 200, body: "History sent." };
+    } catch (err) {
+      console.error("Error fetching history:", err);
+      return { statusCode: 500, body: "Failed to fetch history." };
+    }
+  }
+
+  // 2. Lưu tin nhắn chat vào bảng DynamoDB ChatMessages
+  if (payloadObj.type === "chat" && (payloadObj.text || payloadObj.image)) {
+    const messageItem = {
+      roomId: roomId,
+      timestamp: payloadObj.timestamp || new Date().toISOString(),
+      messageId: "msg_" + Math.random().toString(36).substring(2, 10),
+      username: payloadObj.username || "User",
+      text: payloadObj.text || "",
+      image: payloadObj.image || null,
+      clientId: payloadObj.clientId || "unknown"
+    };
+
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: "ChatMessages",
+          Item: messageItem
+        })
+      );
+    } catch (err) {
+      console.error("Error saving chat message:", err);
+    }
+  }
+
+  // 3. Phát tin nhắn (Broadcast) tới các client đang kết nối
+  const connections = await docClient.send(
+    new ScanCommand({ TableName: "WebSocketConnections" })
+  );
+
+  const sendMessages = connections.Items.map(async ({ connectionId: targetId }) => {
+    try {
+      await apiGateway.send(
+        new PostToConnectionCommand({
+          ConnectionId: targetId,
+          Data: Buffer.from(
+            JSON.stringify({
+              message: rawData,
+              sender: connectionId
+            })
+          )
+        })
       );
     } catch (e) {
       if (e.$metadata && e.$metadata.httpStatusCode === 410) {
-        // Connection staled, remove from DynamoDB
         await docClient.send(
           new DeleteCommand({
             TableName: "WebSocketConnections",
-            Key: { connectionId },
-          }),
+            Key: { connectionId: targetId }
+          })
         );
       }
     }
   });
 
   await Promise.all(sendMessages);
-  return { statusCode: 200, body: "Data sent." };
+  return { statusCode: 200, body: "Data processed." };
 };
 ```
 

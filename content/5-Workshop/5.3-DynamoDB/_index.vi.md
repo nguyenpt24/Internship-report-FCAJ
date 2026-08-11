@@ -43,3 +43,31 @@ aws dynamodb create-table \
     --key-schema AttributeName=connectionId,KeyType=HASH \
     --billing-mode PAY_PER_REQUEST
 ```
+
+---
+
+#### 2. Khởi tạo Bảng Amazon DynamoDB (ChatMessages) - Lưu Lịch sử Tin nhắn & Phòng chat
+
+Tạo thêm bảng `ChatMessages` để lưu vết lịch sử trò chuyện theo từng phòng chat (`roomId`):
+
+##### Thao tác trên AWS Management Console:
+
+1. Trong **Amazon DynamoDB Console**, nhấn **Create table**.
+2. Cấu hình thông tin bảng:
+   - **Table name**: `ChatMessages`
+   - **Partition key**: `roomId` (Data type: **String**)
+   - **Sort key**: `timestamp` (Data type: **String**)
+   - **Read/write capacity settings**: Chọn **On-demand (Pay-per-request)**.
+3. Nhấn **Create table**.
+
+##### Hoặc khởi tạo bằng AWS CLI:
+
+```bash
+aws dynamodb create-table \
+    --table-name ChatMessages \
+    --attribute-definitions AttributeName=roomId,AttributeType=S AttributeName=timestamp,AttributeType=S \
+    --key-schema AttributeName=roomId,KeyType=HASH AttributeName=timestamp,KeyType=RANGE \
+    --billing-mode PAY_PER_REQUEST
+```
+
+![Bảng ChatMessages ở trạng thái Active thành công](/images/5.3-dynamodb-chatmessages-active-status.png)

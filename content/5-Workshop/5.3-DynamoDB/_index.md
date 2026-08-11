@@ -43,3 +43,31 @@ aws dynamodb create-table \
     --key-schema AttributeName=connectionId,KeyType=HASH \
     --billing-mode PAY_PER_REQUEST
 ```
+
+---
+
+#### 2. Create Amazon DynamoDB Table (ChatMessages) - Chat History & Rooms
+
+Create an additional `ChatMessages` table to persist message history per chat room (`roomId`):
+
+##### Via AWS Management Console:
+
+1. In the **Amazon DynamoDB Console**, click **Create table**.
+2. Configure Table Settings:
+   - **Table name**: `ChatMessages`
+   - **Partition key**: `roomId` (Data type: **String**)
+   - **Sort key**: `timestamp` (Data type: **String**)
+   - **Read/write capacity settings**: Select **On-demand (Pay-per-request)**.
+3. Click **Create table**.
+
+##### Or Provision via AWS CLI:
+
+```bash
+aws dynamodb create-table \
+    --table-name ChatMessages \
+    --attribute-definitions AttributeName=roomId,AttributeType=S AttributeName=timestamp,AttributeType=S \
+    --key-schema AttributeName=roomId,KeyType=HASH AttributeName=timestamp,KeyType=RANGE \
+    --billing-mode PAY_PER_REQUEST
+```
+
+![ChatMessages table in Active status](/images/5.3-dynamodb-chatmessages-active-status.png)
