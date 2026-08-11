@@ -874,6 +874,7 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
         let currentRoomId = 'general';
         let cognitoUserSession = null;
         let pendingSignUpUser = null;
+        let isLoggingOut = false;
 
         // 📜 Chat History Pagination & Deduplication State
         let oldestLoadedTimestamp = null;
@@ -1245,6 +1246,7 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
 
         function handleLogout() {
             if (confirm("Bạn có chắc chắn muốn Đăng xuất khỏi phòng chat?")) {
+                isLoggingOut = true;
                 cognitoUserSession = null;
                 myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
                 renderedMsgKeys.clear();
@@ -1256,11 +1258,12 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
                 if (socket) socket.close();
                 document.getElementById('authScreen').classList.remove('hidden');
                 switchAuthTab('signin');
-                showToast("Đã đăng xuất tài khoản", "info");
+                showToast("Đã đăng xuất tài khoản thành công", "info");
             }
         }
 
         function connect() {
+            isLoggingOut = false;
             socket = new WebSocket(WSS_URL);
             
             socket.onopen = () => {
@@ -1412,9 +1415,11 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
 
             socket.onclose = () => {
                 document.getElementById('status').className = "offline";
-                document.getElementById('status-text').innerText = "Offline (Đang thử lại...)";
-                showToast("Mất kết nối WebSocket. Đang tự động kết nối lại...", "error");
-                setTimeout(connect, 3000);
+                document.getElementById('status-text').innerText = "Offline (Đã ngắt kết nối)";
+                if (!isLoggingOut) {
+                    showToast("Mất kết nối WebSocket. Đang tự động kết nối lại...", "error");
+                    setTimeout(connect, 3000);
+                }
             };
         }
 
