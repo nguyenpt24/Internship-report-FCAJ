@@ -1245,21 +1245,29 @@ Tạo tệp `index.html` trên máy tính local và dán nội dung sau (nhớ t
         }
 
         function handleLogout() {
-            if (confirm("Bạn có chắc chắn muốn Đăng xuất khỏi phòng chat?")) {
-                isLoggingOut = true;
-                cognitoUserSession = null;
-                myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
-                renderedMsgKeys.clear();
-                oldestLoadedTimestamp = null;
-                isLoadingMoreHistory = false;
-                hasMoreHistory = true;
-                const msgBox = document.getElementById('messages');
-                if (msgBox) msgBox.innerHTML = '';
-                if (socket) socket.close();
-                document.getElementById('authScreen').classList.remove('hidden');
-                switchAuthTab('signin');
-                showToast("Đã đăng xuất tài khoản thành công", "info");
+            isLoggingOut = true;
+            cognitoUserSession = null;
+            myClientId = 'usr_' + Math.random().toString(36).substring(2, 8);
+            renderedMsgKeys.clear();
+            oldestLoadedTimestamp = null;
+            isLoadingMoreHistory = false;
+            hasMoreHistory = true;
+
+            const emailInput = document.getElementById('signInEmail');
+            if (emailInput) emailInput.value = '';
+            const passInput = document.getElementById('signInPassword');
+            if (passInput) passInput.value = '';
+
+            const msgBox = document.getElementById('messages');
+            if (msgBox) msgBox.innerHTML = '';
+
+            if (socket) {
+                try { socket.close(); } catch(e) {}
             }
+
+            document.getElementById('authScreen').classList.remove('hidden');
+            switchAuthTab('signin');
+            showToast("Đã đăng xuất tài khoản thành công!", "info");
         }
 
         function connect() {
